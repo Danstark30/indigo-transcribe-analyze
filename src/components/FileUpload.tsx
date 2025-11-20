@@ -11,11 +11,11 @@ export const FileUpload = ({ onFileSelect, isProcessing }: FileUploadProps) => {
   const [isDragging, setIsDragging] = useState(false);
 
   const validateFile = (file: File): boolean => {
-    const validTypes = ['audio/mp3', 'audio/mpeg', 'audio/wav', 'audio/x-m4a', 'audio/ogg', 'text/plain'];
+    const validTypes = ['audio/mp3', 'audio/mpeg', 'audio/wav', 'audio/x-m4a', 'audio/ogg', 'text/plain', 'application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/msword'];
     const maxSize = 25 * 1024 * 1024; // 25MB
 
-    if (!validTypes.includes(file.type) && !file.name.match(/\.(mp3|wav|m4a|ogg|txt)$/i)) {
-      toast.error("Formato no válido. Use MP3, WAV, M4A, OGG o TXT");
+    if (!validTypes.includes(file.type) && !file.name.match(/\.(mp3|wav|m4a|ogg|txt|pdf|docx|doc)$/i)) {
+      toast.error("Formato no válido. Use MP3, WAV, M4A, OGG, TXT, PDF o DOCX");
       return false;
     }
 
@@ -64,7 +64,7 @@ export const FileUpload = ({ onFileSelect, isProcessing }: FileUploadProps) => {
     >
       <input
         type="file"
-        accept=".mp3,.wav,.m4a,.ogg,.txt,audio/*,text/plain"
+        accept=".mp3,.wav,.m4a,.ogg,.txt,.pdf,.doc,.docx,audio/*,text/plain,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         onChange={(e) => {
           const file = e.target.files?.[0];
           if (file) handleFile(file);
@@ -88,7 +88,7 @@ export const FileUpload = ({ onFileSelect, isProcessing }: FileUploadProps) => {
         </div>
         
         <p className="text-xs text-muted-foreground">
-          Audio: MP3, WAV, M4A, OGG • Texto: TXT • Máximo 25MB
+          Audio: MP3, WAV, M4A, OGG • Documentos: TXT, PDF, DOCX • Máximo 25MB
         </p>
       </div>
     </div>
