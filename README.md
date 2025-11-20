@@ -60,6 +60,17 @@ This project is built with:
 - shadcn-ui
 - Tailwind CSS
 
+## How do I configure the API keys?
+
+Create an `.env` file in the project root (same level as `package.json`) and define the required variables:
+
+```
+VITE_GEMINI_API_KEY=<tu_api_key_de_gemini>
+VITE_ELEVENLABS_API_KEY=<tu_api_key_de_elevenlabs>
+```
+
+Restart the dev server after any change to the `.env` file so Vite can pick up the new values.
+
 ## How can I deploy this project?
 
 Simply open [Lovable](https://lovable.dev/projects/b3ddc5cd-4900-4a39-b650-cc2504525c2a) and click on Share -> Publish.

@@ -36,8 +36,13 @@ export const SummaryPanel = ({ transcription, triggerSummary }: SummaryPanelProp
     setIsProcessing(true);
     
     try {
+      const geminiApiKey = import.meta.env.VITE_GEMINI_API_KEY;
+      if (!geminiApiKey) {
+        throw new Error("Falta la variable VITE_GEMINI_API_KEY. Defínela en tu archivo .env.");
+      }
+
       const response = await fetch(
-        'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=AIzaSyBtenpJKzQfkgLLhVGIuTIy4NeFnC4odoY',
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(geminiApiKey)}`,
         {
           method: 'POST',
           headers: {
@@ -92,10 +97,11 @@ Responde SOLO con el JSON, sin texto adicional.`
               }]
             }],
             generationConfig: {
-              temperature: 0.7,
+              temperature: 0.4,
               topK: 40,
               topP: 0.95,
               maxOutputTokens: 1024,
+              responseMimeType: "application/json",
             }
           })
         }
@@ -110,14 +116,21 @@ Responde SOLO con el JSON, sin texto adicional.`
       const data = await response.json();
       const generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
       
-      // Extract JSON from response
-      const jsonMatch = generatedText.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const parsedSummary = JSON.parse(jsonMatch[0]);
-        setSummary(parsedSummary);
+      const parsedSummary = extractSummaryJson(generatedText);
+      if (parsedSummary) {
+        setSummary(normalizeSummary(parsedSummary));
         toast.success("Resumen generado correctamente");
+      } else if (generatedText) {
+        setSummary(normalizeSummary({
+          context: generatedText,
+          keyPoints: [],
+          commitments: [],
+          nextSteps: [],
+          concerns: []
+        }));
+        toast.warning("Mostrando respuesta sin formato. Ajusta el prompt si requieres JSON exacto.");
       } else {
-        throw new Error("No se pudo extraer el resumen estructurado");
+        throw new Error("No se recibió contenido de Gemini");
       }
     } catch (error) {
       console.error('Summary generation error:', error);
@@ -126,6 +139,57 @@ Responde SOLO con el JSON, sin texto adicional.`
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  const extractSummaryJson = (content: string): SummaryData | null => {
+    if (!content) return null;
+
+    const trimmed = content.trim();
+
+    const codeBlockMatch = trimmed.match(/```(?:json)?([\s\S]*?)```/i);
+    const candidate = codeBlockMatch ? codeBlockMatch[1].trim() : trimmed;
+
+    const tryParse = (text: string) => {
+      try {
+        return JSON.parse(text) as SummaryData;
+      } catch {
+        return null;
+      }
+    };
+
+    const directParse = tryParse(candidate);
+    if (directParse) return directParse;
+
+    const braceMatch = candidate.match(/\{[\s\S]*\}/);
+    if (braceMatch) {
+      const braceParse = tryParse(braceMatch[0]);
+      if (braceParse) return braceParse;
+    }
+
+    return null;
+  };
+
+  const normalizeSummary = (data: Partial<SummaryData>): SummaryData => {
+    const ensureArray = (value: unknown): string[] => {
+      if (Array.isArray(value)) {
+        return value.map((item) => String(item));
+      }
+      if (typeof value === "string" && value.trim().length > 0) {
+        return value
+          .split(/\r?\n+/)
+          .map((item) => item.replace(/^\d+[\).\s-]*/, "").trim())
+          .filter(Boolean);
+      }
+      return [];
+    };
+
+    return {
+      context: data.context ?? "Gemini respondió pero no se pudo interpretar el formato.",
+      keyPoints: ensureArray(data.keyPoints),
+      commitments: ensureArray(data.commitments),
+      nextSteps: ensureArray(data.nextSteps),
+      concerns: ensureArray(data.concerns),
+    };
   };
 
   const handleCopy = () => {

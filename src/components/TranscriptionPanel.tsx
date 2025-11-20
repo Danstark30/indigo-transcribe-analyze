@@ -6,6 +6,7 @@ import { Textarea } from "./ui/textarea";
 import { Progress } from "./ui/progress";
 import { Loader2, Trash2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
+import { extractTextFromDocx, extractTextFromPdf } from "@/lib/document-parser";
 
 interface TranscriptionPanelProps {
   transcription: string;
@@ -54,30 +55,30 @@ export const TranscriptionPanel = ({
     
     try {
       toast.info("Procesando documento...");
-      
-      // Save file temporarily
-      const formData = new FormData();
-      formData.append('file', file);
-      
-      // Create a temporary file path
-      const tempPath = `user-uploads://${file.name}`;
-      
-      setProgress(30);
-      
-      // Use document parsing API
-      const response = await fetch('/api/parse-document', {
-        method: 'POST',
-        body: formData
-      });
-      
-      setProgress(70);
-      
-      if (!response.ok) {
-        throw new Error('Error al procesar el documento');
+
+      const extension = file.name.split(".").pop()?.toLowerCase();
+      let extractedText = "";
+
+      if (file.type === "application/pdf" || extension === "pdf") {
+        setProgress(40);
+        extractedText = await extractTextFromPdf(file);
+      } else if (
+        file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+        extension === "docx"
+      ) {
+        setProgress(40);
+        extractedText = await extractTextFromDocx(file);
+      } else if (file.type === "application/msword" || extension === "doc") {
+        throw new Error("Los archivos .doc (Word Legacy) no son compatibles. Por favor exporta a .docx o .pdf.");
+      } else if (file.type === "text/plain" || extension === "txt") {
+        extractedText = await file.text();
+      } else {
+        throw new Error("Formato de documento no soportado. Usa PDF, DOCX o TXT.");
       }
-      
-      const data = await response.json();
-      const extractedText = data.text || '';
+
+      if (!extractedText?.trim()) {
+        throw new Error("No se pudo extraer texto del documento.");
+      }
       
       setProgress(100);
       setTranscription(extractedText);
@@ -85,7 +86,8 @@ export const TranscriptionPanel = ({
       
     } catch (error) {
       console.error('Document processing error:', error);
-      toast.error("Error al procesar el documento. Intente con un archivo de texto (.txt)");
+      const errorMessage = error instanceof Error ? error.message : "Error al procesar el documento. Intente con un archivo de texto (.txt)";
+      toast.error(errorMessage);
     } finally {
       setIsProcessing(false);
       setTimeout(() => setProgress(0), 1000);
@@ -93,34 +95,40 @@ export const TranscriptionPanel = ({
   };
 
   const transcribeAudio = async (audioData: Blob | File) => {
+    const elevenLabsApiKey = import.meta.env.VITE_ELEVENLABS_API_KEY;
+    if (!elevenLabsApiKey) {
+      toast.error("Falta la variable VITE_ELEVENLABS_API_KEY. Defínela en tu archivo .env.");
+      return;
+    }
+
     setIsProcessing(true);
     setProgress(10);
     
     try {
-      // Convert audio to base64
-      const reader = new FileReader();
-      const base64Audio = await new Promise<string>((resolve, reject) => {
-        reader.onload = () => {
-          const result = reader.result as string;
-          resolve(result.split(',')[1]);
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(audioData);
-      });
+      setProgress(20);
+
+      // Prepare multipart/form-data payload
+      const formData = new FormData();
+      const audioFile = audioData instanceof File 
+        ? audioData 
+        : new File([audioData], 'recording.webm', { type: audioData.type || 'audio/webm' });
       
-      setProgress(30);
+      formData.append('file', audioFile);
+      formData.append('model_id', 'scribe_v1');
+      
+      // Optional parameters for better accuracy
+      formData.append('language_code', 'es'); // Spanish focus
+      formData.append('punctuate', 'true');
+
+      setProgress(40);
       
       // Call ElevenLabs API
       const response = await fetch('https://api.elevenlabs.io/v1/speech-to-text', {
         method: 'POST',
         headers: {
-          'xi-api-key': 'sk_49bd5f8b81312795ed3934dc63d37165097629a3e48d2c65',
-          'Content-Type': 'application/json',
+          'xi-api-key': elevenLabsApiKey,
         },
-        body: JSON.stringify({
-          audio: base64Audio,
-          model_id: 'eleven_multilingual_v2'
-        })
+        body: formData
       });
 
       setProgress(70);
