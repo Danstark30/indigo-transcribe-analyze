@@ -11,11 +11,11 @@ export const FileUpload = ({ onFileSelect, isProcessing }: FileUploadProps) => {
   const [isDragging, setIsDragging] = useState(false);
 
   const validateFile = (file: File): boolean => {
-    const validTypes = ['audio/mp3', 'audio/mpeg', 'audio/wav', 'audio/x-m4a', 'audio/ogg'];
+    const validTypes = ['audio/mp3', 'audio/mpeg', 'audio/wav', 'audio/x-m4a', 'audio/ogg', 'text/plain'];
     const maxSize = 25 * 1024 * 1024; // 25MB
 
-    if (!validTypes.includes(file.type) && !file.name.match(/\.(mp3|wav|m4a|ogg)$/i)) {
-      toast.error("Formato no válido. Use MP3, WAV, M4A o OGG");
+    if (!validTypes.includes(file.type) && !file.name.match(/\.(mp3|wav|m4a|ogg|txt)$/i)) {
+      toast.error("Formato no válido. Use MP3, WAV, M4A, OGG o TXT");
       return false;
     }
 
@@ -64,7 +64,7 @@ export const FileUpload = ({ onFileSelect, isProcessing }: FileUploadProps) => {
     >
       <input
         type="file"
-        accept=".mp3,.wav,.m4a,.ogg,audio/*"
+        accept=".mp3,.wav,.m4a,.ogg,.txt,audio/*,text/plain"
         onChange={(e) => {
           const file = e.target.files?.[0];
           if (file) handleFile(file);
@@ -80,7 +80,7 @@ export const FileUpload = ({ onFileSelect, isProcessing }: FileUploadProps) => {
         
         <div>
           <p className="text-lg font-medium text-foreground">
-            Arrastra tu archivo de audio aquí
+            Arrastra tu archivo aquí
           </p>
           <p className="text-sm text-muted-foreground mt-1">
             o haz clic para seleccionar
@@ -88,7 +88,7 @@ export const FileUpload = ({ onFileSelect, isProcessing }: FileUploadProps) => {
         </div>
         
         <p className="text-xs text-muted-foreground">
-          MP3, WAV, M4A, OGG • Máximo 25MB
+          Audio: MP3, WAV, M4A, OGG • Texto: TXT • Máximo 25MB
         </p>
       </div>
     </div>

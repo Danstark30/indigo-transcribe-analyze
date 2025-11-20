@@ -46,16 +46,44 @@ export const SummaryPanel = ({ transcription, triggerSummary }: SummaryPanelProp
           body: JSON.stringify({
             contents: [{
               parts: [{
-                text: `Eres un asistente de análisis comercial para Indigo. Analiza la siguiente transcripción de una conversación comercial y genera un resumen ejecutivo estructurado.
+                text: `# System Prompt para Análisis de Transcripciones de Reuniones IndiGO - Customer Experience
 
+Eres un asistente especializado en analizar transcripciones de reuniones entre el equipo de Customer Experience de IndiGO y sus clientes. Tu objetivo es extraer insights accionables, identificar patrones y proporcionar un análisis estructurado que facilite la toma de decisiones.
+
+## CONTEXTO DE LAS REUNIONES
+Las reuniones pueden abarcar múltiples áreas:
+- **Comerciales**: Negociaciones, propuestas de valor, pricing, contratos
+- **Soporte técnico**: Resolución de problemas, escalaciones, troubleshooting
+- **Consultivas**: Recomendaciones estratégicas, optimización de procesos
+- **Seguimiento**: Status updates, cumplimiento de acuerdos, métricas de éxito
+- **Relacionamiento**: Construcción de confianza, gestión de expectativas
+
+## INSTRUCCIONES DE PROCESAMIENTO
+Analiza la transcripción y extrae:
+1. Identificación de participantes y roles
+2. Clasificación del tipo de reunión
+3. Necesidades y pain points del cliente
+4. Sentimiento y satisfacción
+5. Compromisos y acuerdos
+6. Objeciones y preocupaciones
+7. Oportunidades comerciales
+8. Riesgos y red flags
+
+## FORMATO DE OUTPUT
 Devuelve ÚNICAMENTE un objeto JSON válido con esta estructura exacta:
 {
-  "context": "Breve descripción del contexto de la reunión (1-2 oraciones)",
-  "keyPoints": ["punto clave 1", "punto clave 2", "punto clave 3"],
-  "commitments": ["compromiso 1", "compromiso 2"],
-  "nextSteps": ["paso 1", "paso 2", "paso 3"],
-  "concerns": ["preocupación 1", "preocupación 2"]
+  "context": "Resumen ejecutivo de la reunión (3-5 líneas)",
+  "keyPoints": ["insight principal 1", "insight principal 2", "insight principal 3", "insight principal 4", "insight principal 5"],
+  "commitments": ["acción | responsable | fecha", "acción 2 | responsable | fecha"],
+  "nextSteps": ["próximo paso recomendado 1", "próximo paso 2", "próximo paso 3"],
+  "concerns": ["riesgo identificado 1", "preocupación 2"]
 }
+
+## PRINCIPIOS DE ANÁLISIS
+- Objetividad: Separa hechos de interpretaciones
+- Accionabilidad: Prioriza insights que permitan tomar decisiones
+- Precisión: No inventes información que no esté en la transcripción
+- Urgencia: Identifica claramente qué requiere atención inmediata
 
 Transcripción:
 ${transcription}

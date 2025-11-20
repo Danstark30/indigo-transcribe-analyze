@@ -4,7 +4,7 @@ import { AudioRecorder } from "./AudioRecorder";
 import { Button } from "./ui/button";
 import { Textarea } from "./ui/textarea";
 import { Progress } from "./ui/progress";
-import { Loader2, Trash2 } from "lucide-react";
+import { Loader2, Trash2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
 interface TranscriptionPanelProps {
@@ -20,6 +20,24 @@ export const TranscriptionPanel = ({
 }: TranscriptionPanelProps) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
+
+  const handleFileSelect = async (file: File) => {
+    // Check if it's a text file
+    if (file.type === 'text/plain' || file.name.endsWith('.txt')) {
+      const text = await file.text();
+      setTranscription(text);
+      toast.success("Archivo de texto cargado correctamente");
+      return;
+    }
+    
+    // Check if it's an audio file
+    if (!file.type.startsWith('audio/')) {
+      toast.error("Por favor selecciona un archivo de audio o texto válido");
+      return;
+    }
+    
+    transcribeAudio(file);
+  };
 
   const transcribeAudio = async (audioData: Blob | File) => {
     setIsProcessing(true);
@@ -87,7 +105,7 @@ export const TranscriptionPanel = ({
         <h2 className="text-2xl font-bold text-foreground">Transcripción</h2>
         
         <FileUpload 
-          onFileSelect={transcribeAudio}
+          onFileSelect={handleFileSelect}
           isProcessing={isProcessing}
         />
         
@@ -121,15 +139,6 @@ export const TranscriptionPanel = ({
           <label className="text-sm font-medium text-foreground">
             Texto transcrito
           </label>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleClear}
-            disabled={!transcription || isProcessing}
-          >
-            <Trash2 className="w-4 h-4 mr-2" />
-            Limpiar
-          </Button>
         </div>
         
         <Textarea
@@ -139,6 +148,27 @@ export const TranscriptionPanel = ({
           className="flex-1 min-h-[300px] font-mono text-sm resize-none"
           disabled={isProcessing}
         />
+        
+        <div className="flex gap-3">
+          <Button
+            onClick={() => onTranscriptionComplete(transcription)}
+            variant="default"
+            className="flex-1"
+            disabled={!transcription || isProcessing}
+          >
+            <Sparkles className="w-4 h-4 mr-2" />
+            Procesar
+          </Button>
+          <Button
+            onClick={handleClear}
+            variant="outline"
+            className="flex-1"
+            disabled={!transcription && !isProcessing}
+          >
+            <Trash2 className="w-4 h-4 mr-2" />
+            Limpiar
+          </Button>
+        </div>
       </div>
       
       {isProcessing && (
