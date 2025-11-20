@@ -30,13 +30,66 @@ export const TranscriptionPanel = ({
       return;
     }
     
+    // Check if it's a PDF or Word document
+    if (file.type === 'application/pdf' || 
+        file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+        file.type === 'application/msword' ||
+        file.name.match(/\.(pdf|docx|doc)$/i)) {
+      await processDocument(file);
+      return;
+    }
+    
     // Check if it's an audio file
     if (!file.type.startsWith('audio/')) {
-      toast.error("Por favor selecciona un archivo de audio o texto válido");
+      toast.error("Por favor selecciona un archivo válido (audio, texto o documento)");
       return;
     }
     
     transcribeAudio(file);
+  };
+
+  const processDocument = async (file: File) => {
+    setIsProcessing(true);
+    setProgress(10);
+    
+    try {
+      toast.info("Procesando documento...");
+      
+      // Save file temporarily
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      // Create a temporary file path
+      const tempPath = `user-uploads://${file.name}`;
+      
+      setProgress(30);
+      
+      // Use document parsing API
+      const response = await fetch('/api/parse-document', {
+        method: 'POST',
+        body: formData
+      });
+      
+      setProgress(70);
+      
+      if (!response.ok) {
+        throw new Error('Error al procesar el documento');
+      }
+      
+      const data = await response.json();
+      const extractedText = data.text || '';
+      
+      setProgress(100);
+      setTranscription(extractedText);
+      toast.success("Documento procesado correctamente");
+      
+    } catch (error) {
+      console.error('Document processing error:', error);
+      toast.error("Error al procesar el documento. Intente con un archivo de texto (.txt)");
+    } finally {
+      setIsProcessing(false);
+      setTimeout(() => setProgress(0), 1000);
+    }
   };
 
   const transcribeAudio = async (audioData: Blob | File) => {
@@ -73,7 +126,9 @@ export const TranscriptionPanel = ({
       setProgress(70);
 
       if (!response.ok) {
-        throw new Error(`Error en transcripción: ${response.statusText}`);
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.detail?.message || response.statusText;
+        throw new Error(`Error en transcripción: ${errorMessage}. Verifica que tu API key de ElevenLabs sea válida.`);
       }
 
       const data = await response.json();
@@ -86,7 +141,8 @@ export const TranscriptionPanel = ({
       toast.success("Transcripción completada");
     } catch (error) {
       console.error('Transcription error:', error);
-      toast.error("Error en la transcripción");
+      const errorMessage = error instanceof Error ? error.message : "Error en la transcripción";
+      toast.error(errorMessage);
     } finally {
       setIsProcessing(false);
       setTimeout(() => setProgress(0), 1000);

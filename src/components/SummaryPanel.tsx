@@ -102,7 +102,9 @@ Responde SOLO con el JSON, sin texto adicional.`
       );
 
       if (!response.ok) {
-        throw new Error(`Error en análisis: ${response.statusText}`);
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.error?.message || response.statusText;
+        throw new Error(`Error en análisis: ${errorMessage}. Verifica que tu API key de Gemini sea válida.`);
       }
 
       const data = await response.json();
@@ -119,7 +121,8 @@ Responde SOLO con el JSON, sin texto adicional.`
       }
     } catch (error) {
       console.error('Summary generation error:', error);
-      toast.error("Error al generar el resumen");
+      const errorMessage = error instanceof Error ? error.message : "Error al generar el resumen";
+      toast.error(errorMessage);
     } finally {
       setIsProcessing(false);
     }
